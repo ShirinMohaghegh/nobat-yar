@@ -1,0 +1,1082 @@
+NOBAT-YAR
+
+
+Frontend Specification for the
+Remaining Pages
+Handoff document for the programmer. It covers every page that is not built yet, with user flows, form rules, data models,
+export and print requirements, and acceptance checks. Visual styling is out of scope: reuse the existing design system,
+header, footer, cards and tokens. The homepage is already built.
+
+How to read this document
+ - This cover section and the sections GLOBAL 2, GLOBAL 3 and GLOBAL 4 are global: rules, routes, shared behavior and
+   data. They apply to every page.
+ - After that, each site page starts on its own PDF page (some run to two PDF pages).
+ - Every site page follows the same structure: purpose, entry points, content, behavior, flows, edge cases, acceptance
+   checks.
+ - All user-facing text must be in Persian. Explanations here are English; Persian copy is kept in separate tables so the two
+   never mix. Every piece of Persian copy is written out in real Persian script in tables titled Persian copy (shared copy is in
+   GLOBAL 5). Use those strings exactly; for anything not listed, write natural, polite Persian in the same tone.
+
+
+1. Project summary
+ - Nobat-Yar is a Persian-language doctor appointment platform that covers several cities. It is not a single clinic.
+ - Front-end only. No backend. All data is mock data plus browser storage.
+ - It is a practice and portfolio project, not for real use. Its main showcase is form work: a one-time patient profile form, a
+    short per-visit form, a clean profile table with PDF and Excel export, and a printable appointment sheet.
+ - Status: the homepage is built. This document specifies everything else.
+
+
+2. Technical baseline
+ - React with Radix UI (already in the project). A Persian (Jalali) date picker is mandatory.
+ - Right-to-left layout and the font already set in the design system.
+ - Data: src/data/mock.js plus browser storage (see GLOBAL 3). No API calls.
+ - No checkboxes anywhere. Allowed controls: RadioGroup, Select, Switch, ToggleGroup (single or multiple), Slider,
+   Textarea, text and number inputs, and the Jalali date picker.
+ - Review each page at desktop width and at 360 px mobile width before calling it done. Breakpoints: 1024 and 768.
+
+
+3. Language and formats
+Item                       Display in the UI                                           Stored
+Digits                     Persian digits everywhere (labels, numbers, times, codes)   Latin digits
+Dates                      Jalali, with month name in long form                        ISO Gregorian string (YYYY-MM-DD)
+Time                       24-hour HH:mm in Persian digits                             HH:mm in Latin digits
+Typing digits              Accept Persian and Arabic digits in every input             Normalize to Latin before validation and saving
+Phone numbers              Persian digits, format 09xxxxxxxxx                          Latin string
+
+
+
+4. Out of scope (do not build)
+ - Real login, registration or authentication. Payments. SMS or email. Backend or admin tools.
+ - Settings page: the menu item may exist but must be disabled or show a short coming-soon hint.
+ - All-specialties page. Full province and city database (the city list stays Tehran and Karaj only).
+ - Dark mode. Users writing new reviews (reviews are read-only sample data).
+
+
+
+
+Nobat-Yar | Frontend specification with Persian copy   Page 1
+GLOBAL 2
+
+Sitemap, End-to-End Flows and Back Rules
+Routes
+Route                                Page                                                                                Status
+/                                    Landing                                                                             Built
+/doctors                             Doctors list (filter by specialty, city, query)                                     New
+/doctors/:id                         Doctor page, reviews at the bottom                                                  New
+/book/start                          Profile gate (shown only if the profile is incomplete)                              New
+/profile                             My profile: summary table with PDF and Excel export                                 New
+/profile/edit/:step                  Profile form, 4 steps: identity, contact, insurance, medical                        New
+/book/schedule                       Choose date and time                                                                New
+/book/visit                          Visit form                                                                          New
+/book/review                         Review and confirm                                                                  New
+/book/done                           Success with tracking code                                                          New
+/appointments                        My appointments table                                                               New
+/appointments/:code                  Appointment details sheet with print                                                New
+
+
+
+Flow A: first booking (new user)
+    1. Landing or Doctors list: user opens a doctor card. The card button opens the Doctor page; it does not start booking.
+    2. On the Doctor page the user clicks Get appointment. This starts the real booking.
+    3. The system checks whether the profile is complete.
+    4. If incomplete: Profile gate, then the 4-step profile form, then Save. After saving, the user returns automatically to the
+       booking.
+    5. Schedule page: choose date and time.
+    6. Visit form, then Review, then Confirm.
+    7. Success page with the tracking code. Next: view details, My appointments, or a new appointment.
+
+
+Flow B: returning user
+Same as Flow A but steps 3 and 4 are skipped: Get appointment goes straight to the Schedule page.
+
+Flow C: manage appointments
+Profile menu (or the next-appointment card on the landing hero) to Appointments table, then a row opens the Details sheet,
+where the user can print or cancel (if active).
+
+Flow D: profile
+Profile menu to My profile (table). From there: Edit profile, Export PDF, Export Excel.
+
+Back button rules
+Page                                        Back goes to
+Doctors list                                Landing
+Doctor page                                 Previous page (list or landing); fallback: Doctors list
+Profile gate                                Doctor page
+Profile form, step 1                        The page that opened it (returnTo); fallback: My profile
+Profile form, steps 2 to 4                  Previous step (data kept)
+My profile                                  Landing
+Schedule                                    Doctor page
+Visit form                                  Schedule
+Review                                      Visit form
+Success                                     No back button. Three forward buttons instead. Browser Back must not re-submit.
+Appointments                                Landing
+Appointment details                         Appointments
+
+
+    - Every page and every step has a visible Back button in a consistent place (top, next to the breadcrumb) and again
+      next to the primary button at the bottom of forms.
+
+Nobat-Yar | Frontend specification with Persian copy      Page 2
+ - Going back never clears entered data. The browser Back button behaves the same as the on-page Back button (each
+   step has its own URL).
+ - All inner pages show a breadcrumb, for example Home > Doctors > Doctor name.
+ - One primary action per screen. Secondary actions look secondary.
+
+
+
+GLOBAL 3
+
+Shared Behavior
+City selector (header, global)
+ - The header city button filters doctors everywhere. Current list: Tehran and Karaj only (expansion deferred by the owner).
+   Default: Tehran.
+ - The choice is stored in localStorage (key: city) and applied instantly to the Doctors list and the Doctor suggestions on the
+   landing page.
+ - Sample doctors exist only for Tehran and Karaj. Other cities, once added, must show an empty state, not an error.
+
+
+Header search
+ - Typing and pressing Enter (or the search icon) goes to /doctors?q=text. It matches doctor name and specialty name,
+   limited to the selected city.
+ - On mobile the search is an icon that opens a full-width search row.
+
+
+Profile menu (header, top-left icon)
+Item                             Behavior
+My appointments                  Goes to /appointments
+My profile                       Goes to /profile (if no profile yet, the page shows an empty state with a create button)
+Settings                         No page yet: disabled or coming-soon hint
+Log out                          Confirmation dialog. On confirm: delete everything stored about the account (saved profile, drafts and
+                                 ALL appointments). Only the selected city stays, because it is a device preference. Then go to the
+                                 landing page, where the hero returns to its new-user state. Nothing about the old account may be shown
+                                 afterwards. There is no real account.
+
+
+
+Profile completeness gate
+ - A profile is complete when every required field of all 4 steps is filled and valid.
+ - The check happens when booking starts (Get appointment on the Doctor page), never in the middle of the visit form.
+   This is a deliberate decision: the user must never fill a visit form and then discover a long profile form is also needed.
+ - The profile is filled once, saved in the browser, and reused for every later visit.
+
+
+Storage keys
+Key                         Storage                     Content
+city                        localStorage                Selected city id
+profile                     localStorage                Saved profile object
+appointments                localStorage                Array of appointments
+profileDraft                sessionStorage              In-progress profile form values (survives refresh)
+bookingDraft                sessionStorage              doctorId, date, time and visit-form values
+
+
+Dev helper: opening any page with ?seed=1 loads a demo complete profile plus 3 demo appointments (one active, one done, one
+cancelled). ?seed=0 clears everything. This lets the owner review every page quickly.
+
+Form conventions (all forms)
+ - Validate on blur and when pressing Next or Submit. Show friendly Persian messages under the field (for example:
+   required field; national ID is not valid; mobile number must be 11 digits starting with 09).
+ - On Next with errors: do not move on, scroll to and focus the first invalid field.
+ - The only button that may be disabled is Continue on the Schedule page (until a time is chosen), with a one-line
+   explanation under it.
+ - Unsaved-changes guard: leaving a dirty form (link click or browser Back out of the flow) opens a confirmation dialog with
+   Stay and Leave.
+
+Nobat-Yar | Frontend specification with Persian copy   Page 3
+ - Profile form and Visit form show a small note at the top: sample educational project, do not enter real personal
+   information. (Only on these forms; not on the landing page or footer.)
+ - Success and failure feedback uses a short toast.
+
+
+Iran-specific validation
+Field                        Rule
+National ID                  10 digits after normalization. Reject all-same-digit values. Checksum: s = sum of digit[i] * (10 - i) for i = 0 to 8;
+                             r = s mod 11; valid if (r < 2 and check digit = r) or (r >= 2 and check digit = 11 - r).
+Mobile                       Regex ^09[0-9]{9}$ after normalization
+Names                        Persian letters and spaces (allow zero-width non-joiner), 2 to 40 characters
+Birth date                   Jalali date picker; not in the future; age at most 120
+Height / weight              Height 50 to 250 cm; weight 2 to 300 kg; numbers only
+
+
+
+
+GLOBAL 4
+
+Data Models and Mock Data
+Specialties (8, used by filters)
+general (General practice), cardiology, ophthalmology, orthopedics, neurology, pediatrics, dermatology, gynecology. The landing page
+shows 6 tiles (the first six); dermatology and gynecology are reachable through the Specialty filter on the Doctors list. Tile click goes to
+/doctors?specialty=slug.
+
+Models
+Model                  Fields
+Doctor                 id, name, specialty, city, rating (number), reviewCount, photo (null for all: use the fixed-size person icon),
+                       todayAvailable (boolean), bio, address, workingHours, acceptedInsurances[], councilNumber (sample)
+Profile                firstName, lastName, fatherName, nationality (iranian or foreign), nationalId or foreignId, birthDate (ISO), gender,
+                       maritalStatus, mobile, emergencyName, emergencyRelation, emergencyMobile, basicInsurance,
+                       hasSupplementary, supplementaryCompany, bloodType, heightCm, weightKg, conditions[], hasDrugAllergy,
+                       drugAllergyText, medications, surgeries, familyHistory, smoking, updatedAt
+Visit                  visitType (first or followup), reason, duration, severity (0 to 10), pregnancy (pregnant or not, only for female
+                       profiles), notes
+Appointment            code (6 digits, unique), doctorId, doctorName, specialty, city, date (ISO), time, status (active, done, cancelled),
+                       visit (Visit), profileSnapshot (copy of Profile at booking time), createdAt
+Review                 id, authorName (first name plus last initial), date (ISO), stars (1 to 5), text
+
+
+Status "done" is derived: an active appointment whose date and time have passed is shown as done. The appointment stores a
+snapshot of the profile so later profile edits never change old sheets.
+
+
+Mock doctors (10). Persian names and specialty lines are in GLOBAL 5
+id        Name                                Specialty                        City               Rating         Reviews            Today
+d1        Dr. Sara Rezaei                     Dermatology                      Tehran             4.8            1000               yes
+d2        Dr. Maryam Karimi                   Gynecology                       Tehran             4.9            1200               yes
+d3        Dr. Ali Mohammadi                   Cardiology                       Tehran             4.5            680                yes
+d4        Dr. Reza Ahmadi                     General practice                 Tehran             4.6            540                no
+d5        Dr. Nasrin Hosseini                 Pediatrics                       Tehran             4.7            910                yes
+d6        Dr. Hamid Soltani                   Orthopedics                      Tehran             4.4            430                no
+d7        Dr. Zahra Moradi                    General practice                 Karaj              4.6            320                yes
+d8        Dr. Mehdi Rahimi                    Cardiology                       Karaj              4.3            280                no
+d9        Dr. Leila Fathi                     Ophthalmology                    Karaj              4.8            610                yes
+d10       Dr. Payam Jafari                    Neurology                        Karaj              4.5            350                no
+
+
+Keep the homepage doctors consistent with this table (the first three rows are the doctors already on the homepage).
+
+Availability rules (mock)
+ - Days: the next 14 days, excluding Fridays. Slots every 30 minutes: 09:00 to 11:30 (morning) and 16:00 to 18:30
+   (afternoon).
+
+Nobat-Yar | Frontend specification with Persian copy       Page 4
+ - About one third of slots are taken, chosen deterministically from doctorId + date + time so results are stable between
+   reloads.
+ - Today shows only future slots. For demo stability, doctors flagged Today = yes must always offer at least two free slots
+   today (use a fake clock of 08:00 if the real time is later). The Today tag on cards comes from this flag.
+
+
+Sample reviews (read-only)
+12 ready-made Persian sample reviews are written out on the Doctor page spec (page 2 section). They are reused for every doctor; Show
+more reveals the second six, then disappears.
+
+
+GLOBAL 5
+
+Shared Persian Copy
+Use these Persian strings exactly. They are real Persian text (copyable), with correct half-spaces. Anything not listed must be
+written in the same tone: polite and friendly, formal you-form, Persian digits. Placeholders in curly braces are replaced by values.
+
+
+Brand, navigation, header
+Element                                                Persian text (use exactly)
+Brand name                                                                                                                         ‫نوبت‌یار‬
+Nav links                                                                                                                    ‫ پزشکان‬، ‫خانه‬
+Search placeholder                                                                                                      ‫نام پزشک یا تخصص‬
+Profile menu items                                                               ‫ خروج از حساب کاربری‬، ‫ تنظیمات‬، ‫ پرونده‌ی من‬، ‫نوبت‌های من‬
+Cities                                                                                                                         ‫ کرج‬، ‫تهران‬
+Hero next-appointment card                                                                     ‫ مشاهده جزئیات‬:‫ نوبت بعدی شما ؛ دکمه‬:‫عنوان‬
+
+
+Common buttons and words
+Element                                                Persian text (use exactly)
+Back                                                                                                                               ‫بازگشت‬
+Next (forms)                                                                                                                   ‫مرحله‌ی بعد‬
+Continue                                                                                                                              ‫ادامه‬
+Save profile                                                                                                                ‫ذخیره‌ی پرونده‬
+Edit                                                                                                                               ‫ویرایش‬
+Dialog dismiss                                                                                                                     ‫انصراف‬
+Cancel appointment                                                                                                                ‫لغو نوبت‬
+Get appointment                                                                                                               ‫دریافت نوبت‬
+View details                                                                                                               ‫مشاهده جزئیات‬
+Print                                                                                                                                 ‫چاپ‬
+Copy                                                                                                                                   ‫کپی‬
+Change                                                                                                                                ‫تغییر‬
+Yes / No (display)                                                                                                                ‫ خیر‬، ‫بله‬
+Status labels                                                                                                    ‫ لغو‌شده‬، ‫ انجام‌شده‬، ‫فعال‬
+Educational note (forms and sheets only)                                                          ‫نمونه‌ی آموزشی؛ اطالعات واقعی وارد نکنید‬
+
+
+Specialties
+Slug                        Filter and tile label                             Doctor line
+general                                                             ‫عمومی‬                                                    ‫پزشک عمومی‬
+cardiology                                                    ‫قلب و عروق‬                                              ‫متخصص قلب و عروق‬
+ophthalmology                                                         ‫چشم‬                                             ‫متخصص چشم‌پزشکی‬
+orthopedics                                                         ‫ارتوپدی‬                                               ‫متخصص ارتوپدی‬
+neurology                                                    ‫مغز و اعصاب‬                                             ‫متخصص مغز و اعصاب‬
+pediatrics                                                          ‫کودکان‬                                                 ‫متخصص کودکان‬
+dermatology                                                          ‫پوست‬                                                  ‫متخصص پوست‬
+
+
+Nobat-Yar | Frontend specification with Persian copy       Page 5
+‫‪Slug‬‬                        ‫‪Filter and tile label‬‬                            ‫‪Doctor line‬‬
+‫‪gynecology‬‬                                                   ‫زنان و زایمان‬                                                   ‫متخصص زنان‬
+
+
+‫)‪Mock doctors (Persian names and addresses‬‬
+‫‪id‬‬               ‫‪Name‬‬                                                        ‫‪Specialty line‬‬
+‫‪d1‬‬                                                        ‫دکتر سارا رضایی‬                                                  ‫متخصص پوست‬
+‫‪d2‬‬                                                       ‫دکتر مریم کریمی‬                                                     ‫متخصص زنان‬
+‫‪d3‬‬                                                       ‫دکتر علی محمدی‬                                              ‫متخصص قلب و عروق‬
+‫‪d4‬‬                                                        ‫دکتر رضا احمدی‬                                                     ‫پزشک عمومی‬
+‫‪d5‬‬                                                     ‫دکتر نسرین حسینی‬                                                    ‫متخصص کودکان‬
+‫‪d6‬‬                                                      ‫دکتر حمید سلطانی‬                                                  ‫متخصص ارتوپدی‬
+‫‪d7‬‬                                                        ‫دکتر زهرا مرادی‬                                                    ‫پزشک عمومی‬
+‫‪d8‬‬                                                      ‫دکتر مهدی رحیمی‬                                              ‫متخصص قلب و عروق‬
+‫‪d9‬‬                                                          ‫دکتر لیال فتحی‬                                           ‫متخصص چشم‌پزشکی‬
+‫‪d10‬‬                                                       ‫دکتر پیام جعفری‬                                           ‫متخصص مغز و اعصاب‬
+
+
+‫‪Shared dialogs and messages‬‬
+‫‪Element‬‬                                                ‫)‪Persian text (use exactly‬‬
+‫‪Log out dialog: title‬‬                                                                                      ‫از حساب کاربری خارج می‌شوید؟‬
+‫‪Log out dialog: text‬‬                                                   ‫پرونده‪ ،‬نوبت‌ها و اطالعات ذخیره‌شده‌ی شما از این مرورگر پاک می‌شود‪.‬‬
+‫‪Log out dialog: buttons‬‬                                                                                                    ‫انصراف ؛ خروج‬
+‫‪Log out toast‬‬                                                                                                     ‫از حساب خود خارج شدید‬
+‫‪Unsaved changes: title‬‬                                                                                         ‫از این صفحه خارج می‌شوید؟‬
+‫‪Unsaved changes: text‬‬                                                                                     ‫تغییرات ذخیره‌نشده از بین می‌رود‪.‬‬
+‫‪Unsaved changes: buttons‬‬                                                                                            ‫ماندن در صفحه ؛ خروج‬
+‫‪Required field‬‬                                                                                                        ‫این فیلد الزامی است‬
+
+
+
+
+‫‪Nobat-Yar | Frontend specification with Persian copy‬‬       ‫‪Page 6‬‬
+SITE PAGE 1
+
+Doctors List
+Route: /doctors            (query: specialty, sort, q)
+One page template that serves every specialty. Lets the user browse doctors in the selected city and open a doctor page. It
+does not start booking.
+
+Entry points
+ - Landing specialty tile: /doctors?specialty=slug. Landing view-all link and header Doctors link: /doctors.
+ - Header search: /doctors?q=text. Landing doctor card button is not an entry point (it opens the Doctor page).
+
+
+Content, top to bottom
+ 1. Back button and breadcrumb: Home > Doctors (> specialty name when filtered).
+ 2. Page title: Doctors of the selected specialty in the selected city (or all doctors in the city).
+ 3. Context row: city chip with a Change link that opens the header city selector; active search chip (q) with a clear button.
+ 4. Filter bar: Specialty (Select with All plus 8 options) and Sort (Select: soonest available [default], highest rated, most
+    reviews).
+ 5. Result count, for example: 3 doctors found.
+ 6. Doctor grid using the existing doctor card: fixed-size person icon, name, specialty, stars with Out of N reviews, Today tag
+    only when applicable, button Get appointment.
+
+
+Behavior
+ - Filters live in the URL query so refresh and sharing keep them; changing any filter updates results instantly (no submit
+   button).
+ - The whole card and its button both open /doctors/:id. Hovering follows the existing card behavior.
+ - City from the header always applies. Changing the city re-filters the list immediately.
+ - Sort soonest: doctors with Today first, then by highest rating. No pagination needed (at most 12 doctors).
+
+
+Flows
+ 1. User taps a specialty tile on the landing page, sees the filtered list, opens a doctor, continues to the Doctor page.
+ 2. User types a name in the header search, sees matches, opens one.
+ 3. User changes the city in the header while on the list and sees the list update in place.
+
+
+Empty and edge states
+Situation                                       Show
+City has no doctors                             Friendly empty state explaining there are no doctors in this city yet, with a Change city
+                                                button
+Specialty has no doctors in this city           Empty state with a Clear specialty filter button
+Search finds nothing                            Empty state with a Clear search button and a hint to try another name or specialty
+Unknown specialty slug in URL                   Treat as All
+
+
+
+Acceptance checks
+ - Specialty, sort and q survive refresh. Back from a Doctor page returns to the same filtered list.
+ - Person icon has the same size on every card. Today tag appears only for flagged doctors.
+ - Works at 360 px: filter bar stacks, cards in one column.
+
+
+Persian copy: Doctors list
+Element                                                Persian text (use exactly)
+Title (filtered)                                                          ‫ پزشکان قلب و عروق در تهران‬:‫پزشکان {تخصص} در {شهر} مثال‬
+Title (all)                                                                                                                   }‫پزشکان {شهر‬
+Breadcrumb                                                                                                                   ‫خانه > پزشکان‬
+City chip and link                                                                                                        ‫ {شهر} ؛ تغییر‬:‫شهر‬
+Search chip                                                                                                               }‫ {عبارت‬:‫جست‌وجو‬
+Specialty filter                                                                                   ‫ همه‌ی تخصص‌ها‬:‫تخصص ؛ گزینه‌ی پیش‌فرض‬
+Nobat-Yar | Frontend specification with Persian copy       Page 7
+‫‪Element‬‬                                                ‫)‪Persian text (use exactly‬‬
+‫‪Sort label and options‬‬                                                              ‫مرتب‌سازی ؛ نزدیک‌ترین نوبت ‪ ،‬باالترین امتیاز ‪ ،‬بیشترین نظر‬
+‫‪Result count‬‬                                                                                       ‫{‪ }n‬پزشک پیدا شد مثال‪ ۳ :‬پزشک پیدا شد‬
+‫‪Card rating line‬‬                                                                              ‫{امتیاز} از {تعداد} نظر مثال‪ ۴٫۸ :‬از ‪ ۱۰۰۰‬نظر‬
+‫‪Card tag and button‬‬                                                                                             ‫امروز نوبت دارد ؛ دریافت نوبت‬
+‫‪Empty (city): title‬‬                                                                                   ‫هنوز پزشکی در این شهر ثبت نشده است‬
+‫‪Empty (city): text and button‬‬                                                                           ‫شهر دیگری را امتحان کنید‪ .‬؛ تغییر شهر‬
+‫)‪Empty (specialty‬‬                                                       ‫در این شهر پزشکی با این تخصص پیدا نشد‪ .‬؛ دکمه‪ :‬حذف فیلتر تخصص‬
+‫)‪Empty (search‬‬                                         ‫نتیجه‌ای برای جست‌وجوی شما پیدا نشد‪ .‬نام یا تخصص دیگری را امتحان کنید‪ .‬؛ دکمه‪ :‬پاک‬
+                                                                                                                          ‫کردن جست‌وجو‬
+
+
+
+
+‫‪Nobat-Yar | Frontend specification with Persian copy‬‬       ‫‪Page 8‬‬
+SITE PAGE 2
+
+Doctor Page
+Route: /doctors/:id
+Full page for one doctor (not a side panel). Builds trust and is where booking starts. Reviews are at the bottom of the page.
+
+Entry points
+ - Any doctor card (landing today section, Doctors list). Button label on the card is Get appointment; it opens this page.
+
+
+Content, top to bottom
+1. Back button and breadcrumb: Home > Doctors > doctor name.
+2. Header block: fixed-size person icon (photo if ever present), name, specialty, city, stars with Out of N reviews, Today tag
+   if applicable, sample medical council number.
+3. In-page anchor links: About, Practice, Reviews (scroll to sections; no tabs, so reviews are never hidden).
+4. About: a short bio of two to three sentences and experience note.
+5. Practice information: address, working hours, accepted insurances (list).
+6. Reviews (bottom of the page): rating summary (average, total count, 5-to-1 distribution bars consistent with the doctor
+   rating), then the list of sample reviews (stars, name, Jalali date, text) with a Show more button (see GLOBAL 4). Read-
+   only.
+
+
+Booking panel (side column on desktop, sticky bottom bar on mobile)
+ - Shows the next three available days with up to four time chips each (ToggleGroup, single select) and the primary button
+    Get appointment.
+ - Choosing a chip is optional. If a chip is chosen, it is passed to the Schedule page and preselected there.
+ - If the doctor has no free slot in the next 14 days: show a no-availability message and disable the button.
+
+
+Behavior of Get appointment
+1. Profile complete: go to /book/schedule?doctor=:id (plus date and time if a chip was chosen).
+2. Profile incomplete: go to /book/start?doctor=:id (Profile gate).
+
+
+Flows
+1. From list or landing, open card, read about and reviews, pick a time chip, click Get appointment, continue per Flow A or
+   B.
+2. Back returns to where the user came from; on direct load the fallback is /doctors.
+
+
+Edge cases and acceptance checks
+ - Unknown :id shows a not-found state with a button back to the Doctors list.
+ - Doctor from another city than the selected one still opens (shareable link) and shows its own city.
+ - Reviews section is the last content section before the footer. Show more appends 6 reviews once, then hides.
+ - Booking panel stays reachable on mobile without scrolling back up.
+
+
+Persian copy: Doctor page
+Element                                                Persian text (use exactly)
+Breadcrumb                                                                                            ‫خانه > پزشکان > دکتر سارا رضایی‬
+Council number (sample)                                                                                      ۱۲۳۴۵۶ :‫شماره‌ی نظام پزشکی‬
+Anchor links                                                                                 ‫ نظرات بیماران‬، ‫ اطالعات مطب‬، ‫درباره‌ی پزشک‬
+Sample bio (d1)                                         ‫ سال در زمینه‌ی درمان بیماری‌های پوست‬۱۰ ‫ بیش از‬،‫ متخصص پوست‬،‫دکتر سارا رضایی‬
+                                                                  .‫ او با دقت و حوصله به مشکالت بیماران رسیدگی می‌کند‬.‫و مو فعالیت دارد‬
+Bio for the other doctors                               .)‫همین الگو را برای هر پزشک با تخصص و سال سابقه‌ی متفاوت بنویسید (دو تا سه جمله‬
+Practice labels                                                                                   ‫ بیمه‌های طرف قرارداد‬، ‫ ساعت کار‬، ‫نشانی‬
+Sample address (Tehran)                                                        ۲ ‫ طبقه‬،۱۲۰ ‫ پالک‬،‫ نرسیده به میدان ونک‬،‫ خیابان ولیعصر‬،‫تهران‬
+Sample address (Karaj)                                                                             ۴۵ ‫ پالک‬،‫ متری‬۵۰ ‫ خیابان‬،‫ گوهردشت‬،‫کرج‬
+Working hours                                                                                            ۱۹ ‫ تا‬۱۶ ‫ و‬۱۲ ‫ تا‬۹ ،‫شنبه تا چهار‌شنبه‬
+Accepted insurances                                              ‫ ایران‬، ‫ دانا‬، ‫ نیروهای مسلح‬، ‫ خدمات درمانی‬، ‫ سالمت ایرانیان‬، ‫تأمین اجتماعی‬
+Nobat-Yar | Frontend specification with Persian copy       Page 9
+‫‪Element‬‬                                                ‫)‪Persian text (use exactly‬‬
+‫‪Reviews heading‬‬                                                                                                              ‫نظرات بیماران‬
+‫‪Reviews summary‬‬                                                                                                ‫‪ ۴٫۸‬از ‪ ۵‬؛ بر اساس ‪ ۱۰۰۰‬نظر‬
+‫‪Show more button‬‬                                                                                                        ‫نمایش نظرات بیشتر‬
+‫‪Booking panel heading‬‬                                                                                                     ‫نزدیک‌ترین نوبت‌ها‬
+‫‪Day labels‬‬                                                                             ‫امروز ‪ ،‬فردا ‪ ،‬سپس روز هفته و تاریخ‪ :‬سه‌شنبه ‪ ۲۹‬آبان‬
+‫‪Button‬‬                                                                                                                         ‫دریافت نوبت‬
+‫‪No availability‬‬                                                                                   ‫این پزشک در ‪ ۱۴‬روز آینده نوبت خالی ندارد‪.‬‬
+‫‪Not found and button‬‬                                                                   ‫پزشک مورد نظر پیدا نشد‪ .‬؛ بازگشت به لیست پزشکان‬
+
+
+‫)‪Sample reviews, in Persian (first 6 shown, next 6 after Show more‬‬
+‫‪#‬‬        ‫‪Stars‬‬      ‫‪Reviewer‬‬                      ‫‪Review text‬‬
+‫‪1‬‬        ‫‪5‬‬                             ‫سارا ا‪.‬‬                             ‫برخورد خیلی محترمانه‌ای داشتند و همه‌چیز را با حوصله توضیح دادند‪.‬‬
+‫‪2‬‬        ‫‪5‬‬                            ‫محمد ر‪.‬‬                                                 ‫سر وقت ویزیت شدم و معطلی نداشتم‪ .‬ممنون‪.‬‬
+‫‪3‬‬        ‫‪4‬‬                            ‫نگار ک‪.‬‬                                          ‫پزشک دقیقی هستند‪ ،‬فقط کمی در نوبت منتظر ماندیم‪.‬‬
+‫‪4‬‬        ‫‪5‬‬                            ‫علی م‪.‬‬                                                  ‫توضیحاتشان واضح بود و درمان خوب جواب داد‪.‬‬
+‫‪5‬‬        ‫‪3‬‬                            ‫مریم ن‪.‬‬                                           ‫ویزیت خوب بود ولی نوبت‌دهی کمی با تأخیر انجام شد‪.‬‬
+‫‪6‬‬        ‫‪4‬‬                         ‫حسین ف‪.‬‬                                           ‫محیط مطب تمیز و منظم بود و به سؤال‌هایم پاسخ دادند‪.‬‬
+‫‪7‬‬        ‫‪5‬‬                           ‫زهرا س‪.‬‬                                               ‫از نحوه‌ی توضیح و پیگیری درمان بسیار راضی بودم‪.‬‬
+‫‪8‬‬        ‫‪4‬‬                             ‫رضا ج‪.‬‬                                                     ‫کارشان را خوب بلدند و وقت کافی گذاشتند‪.‬‬
+‫‪9‬‬        ‫‪5‬‬                              ‫لیال م‪.‬‬                                     ‫پرسنل مطب هم مؤدب بودند‪ .‬حتمًا دوباره مراجعه می‌کنم‪.‬‬
+‫‪10‬‬       ‫‪4‬‬                            ‫امیر ب‪.‬‬                                                                 ‫نتیجه‌ی درمان رضایت‌بخش بود‪.‬‬
+‫‪11‬‬       ‫‪3‬‬                          ‫فاطمه ح‪.‬‬                                              ‫پزشک خوب بودند ولی پارکینگ نزدیک مطب کم بود‪.‬‬
+‫‪12‬‬       ‫‪5‬‬                           ‫پیمان ق‪.‬‬                                                                   ‫سریع و دقیق‪ .‬توصیه می‌کنم‪.‬‬
+
+
+‫‪Show dates as Jalali dates within the last three months (generate them). Stars are shown as star icons, not digits.‬‬
+
+
+
+
+‫‪Nobat-Yar | Frontend specification with Persian copy‬‬       ‫‪Page 10‬‬
+SITE PAGE 3
+
+Profile Form (and Profile Gate)
+Route: /book/start              and      /profile/edit/:step
+The one-time profile: static personal and medical information that is asked once, saved in the browser and reused for every
+visit. This is the main showcase of form work, so field behavior below is exact.
+
+Profile gate: /book/start?doctor=:id
+ - Shown only if the profile is incomplete. If it is complete, redirect immediately to /book/schedule (replace history so Back
+   works).
+ - Content: short heading, one sentence saying the profile is filled once (about two minutes) and reused for all visits, primary
+   button Complete profile, secondary button Back.
+ - Complete profile goes to /profile/edit/identity with returnTo set to /book/schedule?doctor=:id. Back goes to /doctors/:id.
+
+
+Form structure
+ - Four steps, each with its own URL: identity, contact, insurance, medical. A stepper at the top shows progress; visited
+   steps are clickable.
+ - Buttons: Back (step 1 goes to the page that opened the form), Next (steps 1 to 3), Save profile (step 4).
+ - Next validates the current step. Values are kept in profileDraft across steps and refresh. Save writes the profile and clears
+   the draft.
+ - After saving: toast, then go to returnTo if present, otherwise to /profile. Edit mode (profile exists) loads saved values and
+   uses the same steps.
+
+
+Step 1: Identity
+Field                                 Control                                         Rules
+First name                            Text                                            Required, Persian letters
+Last name                             Text                                            Required, Persian letters
+Father name                           Text                                            Required
+Nationality                           RadioGroup: Iranian, Foreign national           Required, default Iranian
+National ID                           Text, numeric keyboard                          Required if Iranian; checksum rule in GLOBAL 3. Hidden
+                                                                                      if foreign.
+Passport number or foreigner ID       Text                                            Shown and required only if Foreign national; 6 to 15
+                                                                                      letters or digits (proposal)
+Birth date                            Jalali date picker                              Required, not future
+Gender                                RadioGroup: Female, Male                        Required
+Marital status                        RadioGroup: Single, Married                     Required
+
+
+
+Step 2: Contact
+Field                                 Control                                                          Rules
+Mobile                                Text                                                             Required, 09xxxxxxxxx
+Emergency contact name                Text                                                             Required
+Relationship                          Select: spouse, parent, child, sibling, friend, other            Required
+Emergency contact mobile              Text                                                             Required, 09xxxxxxxxx
+
+
+Removed by decision (do not add): birth certificate number, place of issue, landline, address, postal code, insurance number. City
+is not asked here; it is the global header selector.
+
+
+Step 3: Insurance
+Field                                 Control                                                                Rules
+Basic insurance                       Select: Social Security, Iran Health Insurance, Civil Servants         Required
+                                      Medical Services, Armed Forces, None (self-pay)
+Supplementary insurance               Switch (yes or no)                                                     Default no
+Supplementary company                 Select with sample list: Dana, Iran, Asia, Alborz, Day, Parsian,       Shown and required only if the
+                                      Pasargad, Razi, Sina, Mellat, Moallem, Other (Other reveals a          switch is on (sample list; owner may
+                                      text input)                                                            refine)
+
+
+
+Nobat-Yar | Frontend specification with Persian copy       Page 11
+Step 4: Medical history
+Field                            Control                                                               Rules
+Blood type                       ToggleGroup single: A+, A-, B+, B-, AB+, AB-, O+, O-,                 Required
+                                 Unknown
+Height (cm), Weight (kg)         Number inputs                                                         Required, ranges in GLOBAL 3
+Chronic conditions               ToggleGroup multiple (chips): diabetes, hypertension, heart           At least one choice required. Choosing
+                                 disease, asthma, thyroid disorder, kidney disease, liver              None clears the others; choosing any
+                                 disease, epilepsy, none                                               other clears None.
+Drug allergy                     Switch, plus Textarea when on                                         Default no. Text required when on.
+Regular medications              Textarea                                                              Optional
+Past surgeries                   Textarea                                                              Optional
+Family history                   Textarea                                                              Optional
+Smoking                          RadioGroup: Never, Former, Current                                    Required
+
+
+Pregnancy is not in the profile. It is temporary, so it lives in the Visit form.
+
+
+Flows and acceptance checks
+ - New user: Doctor page, Get appointment, Profile gate, steps 1 to 4, Save, automatic return to Schedule.
+ - Returning user opens My profile, taps Edit, changes a field, saves, returns to My profile.
+ - Back from step 3 to step 2 keeps all values. Refresh in the middle keeps the draft. Leaving with edits asks for
+   confirmation.
+ - No checkbox exists; the conditions field works only with ToggleGroup multiple. Digits typed in Persian are accepted and
+   validated correctly.
+
+
+Persian copy: Profile gate and form chrome
+Element                                                Persian text (use exactly)
+Gate: title                                                                                            ‫ پرونده‌ی شما را تکمیل کنیم‬،‫قبل از شروع‬
+Gate: text                                             ‫ این‬.‫اطالعات پرونده فقط یک‌بار پر می‌شود و برای همه‌ی نوبت‌های بعدی استفاده می‌شود‬
+                                                                                                            .‫ دقیقه زمان می‌برد‬۲ ‫کار حدود‬
+Gate: buttons                                                                                                           ‫تکمیل پرونده ؛ بازگشت‬
+Step names                                                                             ‫ سوابق پزشکی‬، ‫ بیمه‬، ‫ اطالعات تماس‬، ‫اطالعات هویتی‬
+Form note                                                                                         ‫نمونه‌ی آموزشی؛ اطالعات واقعی وارد نکنید‬
+Buttons                                                                                                  ‫ ذخیره‌ی پرونده‬، ‫ مرحله‌ی بعد‬، ‫بازگشت‬
+Saved toast                                                                                                            ‫پرونده‌ی شما ذخیره شد‬
+
+
+Persian copy: Step 1 (identity) and Step 2 (contact)
+Field                            Label                                         Options / placeholder
+First name                                                               ‫ نام‬-
+Last name                                                      ‫ نام خانوادگی‬-
+Father name                                                          ‫ نام پدر‬-
+Nationality                                                           ‫ملیت‬                                                 ‫ اتباع خارجی‬، ‫ایرانی‬
+National ID                                                          ‫کد ملی‬                                                   ‫ رقمی‬۱۰ ‫کد ملی‬
+Foreigner ID                                ‫ شماره‌ی گذرنامه یا کد فراگیر‬-
+Birth date                                                        ‫تاریخ تولد‬                                                       ‫انتخاب تاریخ‬
+Gender                                                               ‫جنسیت‬                                                            ‫ مرد‬، ‫زن‬
+Marital status                                                 ‫وضعیت تأهل‬                                                         ‫ متأهل‬، ‫مجرد‬
+Mobile                                                      ‫شماره‌ی موبایل‬                                                       ۰۹۱۲۳۴۵۶۷۸۹
+Emergency contact name                           ‫ نام فرد تماس اضطراری‬-
+Relationship                                                          ‫نسبت‬          ‫ سایر‬، ‫ دوست‬، ‫ خواهر یا برادر‬، ‫ فرزند‬، ‫ پدر یا مادر‬، ‫همسر‬
+Emergency contact mobile            ‫شماره‌ی موبایل فرد تماس اضطراری‬                                                              ۰۹۱۲۳۴۵۶۷۸۹
+
+
+
+
+Nobat-Yar | Frontend specification with Persian copy       Page 12
+‫)‪Persian copy: Step 3 (insurance) and Step 4 (medical‬‬
+‫‪Field‬‬                            ‫‪Label‬‬                                          ‫‪Options / placeholder‬‬
+‫‪Basic insurance‬‬                                                   ‫بیمه‌ی پایه‬        ‫تأمین اجتماعی ‪ ،‬سالمت ایرانیان ‪ ،‬خدمات درمانی ‪ ،‬نیروهای‬
+                                                                                                                       ‫مسلح ‪ ،‬بدون بیمه (آزاد)‬
+‫‪Supplementary switch‬‬                                     ‫‪ -‬بیمه‌ی تکمیلی دارم‬
+‫‪Company‬‬                                                ‫دانا ‪ ،‬ایران ‪ ،‬آسیا ‪ ،‬البرز ‪ ،‬دی ‪ ،‬پارسیان ‪ ،‬پاسارگاد ‪ ،‬رازی ‪ ،‬سینا ‪ ،‬شرکت بیمه‌ی تکمیلی‬
+                                                                                                                          ‫ملت ‪ ،‬معلم ‪ ،‬سایر‬
+‫‪Other company input‬‬                                    ‫‪ -‬نام شرکت را بنویسید‬
+‫‪Blood type‬‬                                                       ‫گروه خونی‬           ‫نمی‌دانم ( ‪values A+, A-, B+, B-, AB+, AB-, O+, O- stay‬‬
+                                                                                                                                     ‫‪)Latin‬‬
+‫‪Height / weight‬‬                           ‫‪ -‬قد (سانتی‌متر) ؛ وزن (کیلوگرم)‬
+‫‪Chronic conditions‬‬                                       ‫بیماری‌های زمینه‌ای‬     ‫دیابت ‪ ،‬فشار خون ‪ ،‬بیماری قلبی ‪ ،‬آسم ‪ ،‬اختالل تیروئید ‪ ،‬بیماری‬
+                                                                                                            ‫کلیوی ‪ ،‬بیماری کبدی ‪ ،‬صرع ‪ ،‬هیچ‌کدام‬
+‫‪Drug allergy‬‬                                           ‫حساسیت دارویی دارم‬                                              ‫نام دارو و عالئم حساسیت‬
+‫‪Medications‬‬                                    ‫‪ -‬داروهای مصرفی همیشگی‬
+‫‪Surgeries‬‬                                                     ‫‪ -‬سوابق جراحی‬
+‫‪Family history‬‬                                 ‫‪ -‬سابقه‌ی بیماری در خانواده‬
+‫‪Smoking‬‬                                                     ‫مصرف دخانیات‬            ‫هرگز ‪ ،‬سابقًا مصرف می‌کردم ‪ ،‬در حال حاضر مصرف می‌کنم‬
+
+
+‫‪Persian copy: Validation messages‬‬
+‫‪Element‬‬                                                ‫)‪Persian text (use exactly‬‬
+‫‪Required‬‬                                                                                                                    ‫این فیلد الزامی است‬
+‫‪Name letters‬‬                                                                                                  ‫فقط از حروف فارسی استفاده کنید‬
+‫‪National ID‬‬                                                                                                                  ‫کد ملی معتبر نیست‬
+‫‪Foreigner ID‬‬                                                                                            ‫شماره‌ی گذرنامه یا کد فراگیر معتبر نیست‬
+‫‪Birth date in future‬‬                                                                                            ‫تاریخ تولد نمی‌تواند در آینده باشد‬
+‫‪Mobile‬‬                                                                                      ‫شماره‌ی موبایل باید ‪ ۱۱‬رقم باشد و با ‪ ۰۹‬شروع شود‬
+‫‪Height‬‬                                                                                                       ‫قد باید بین ‪ ۵۰‬تا ‪ ۲۵۰‬سانتی‌متر باشد‬
+‫‪Weight‬‬                                                                                                        ‫وزن باید بین ‪ ۲‬تا ‪ ۳۰۰‬کیلوگرم باشد‬
+‫‪Conditions‬‬                                                                                        ‫حداقل یک گزینه را انتخاب کنید (یا «هیچ‌کدام»)‬
+
+
+
+
+‫‪Nobat-Yar | Frontend specification with Persian copy‬‬       ‫‪Page 13‬‬
+SITE PAGE 4
+
+My Profile: Summary Table with Export
+Route: /profile
+A clean table view of everything in the saved profile, with Export PDF and Export Excel buttons. Persian must render
+correctly in both exports. This page is the proof of the form-to-table-to-file idea.
+
+Entry points
+ - Profile menu, My profile. After saving the profile (when there is no returnTo). Edit links elsewhere.
+
+
+Content, top to bottom
+1.      Back button (to Landing) and breadcrumb: Home > My profile.
+2.      Title, completeness status chip, and last updated date (Jalali).
+3.      Action row: Edit profile (goes to /profile/edit/identity), Export PDF, Export Excel.
+4.      Four section tables, each a two-column label and value table: Identity, Contact, Insurance, Medical history.
+5.      Display rules: Jalali long date for birth date; gender and other choices as their Persian labels; conditions shown as a
+        comma list (or chips); empty optional fields show a dash; Persian digits everywhere.
+
+
+Empty state
+ - No profile yet: message plus Create profile button (goes to /profile/edit/identity). Export buttons are hidden.
+
+
+Export PDF
+ - Content: brand name, title Patient profile, export date (Jalali), the same four tables, a short educational-sample note in the
+   footer.
+ - Recommended method: a print-optimized view of the same page (print stylesheet, A4 portrait, 15 mm margins, no
+   header, footer or buttons, tables never split mid-row) and window.print(). Set document.title to nobat-yar-profile before
+   printing so the saved file gets a clean name. The button label stays Export PDF; the user chooses Save as PDF in the
+   dialog. This method renders Persian perfectly with the page font.
+ - Fallback if one-click download is required: render the print view to canvas (html2canvas) and place it into a PDF
+   (jsPDF). Persian is correct, but text is not selectable and the file is larger. Say so in the final notes.
+ - Do not use jsPDF text drawing or pdfmake with default fonts: Persian letters come out disconnected or reversed. If direct
+   text is ever required, embed the project font and test with the acceptance strings below.
+
+
+Export Excel
+ - Library: SheetJS (xlsx) or ExcelJS. File name: nobat-yar-profile.xlsx. One worksheet named in Persian (profile).
+ - Layout: two columns (Field, Value). Each section is a bold header row followed by its rows. Header row styled and frozen.
+   Column widths set; text wrapped.
+ - Worksheet direction must be right-to-left (sheet view rightToLeft). Set a Persian-capable font (for example Tahoma) on
+   all cells.
+ - Write dates as Jalali text strings (not Excel date serials) and keep Persian digits in display values. National ID and mobile
+   must be text cells so leading zeros are never dropped.
+
+
+Acceptance checks
+ - Open the PDF and the Excel file: joined Persian letters, correct word order, Persian digits, no empty boxes. Test strings: a
+   name with a half-space, a long address-like text, a mobile starting with 09, and a Jalali date.
+ - The profile is shown in the same order and wording as the form. Export buttons are keyboard accessible.
+ - The page works at 360 px: tables stay readable (label above value is acceptable on mobile).
+
+
+Persian copy: My profile page and exports
+Element                                                Persian text (use exactly)
+Title                                                                                                                     ‫پرونده‌ی من‬
+Status chip                                                                                                               ‫کامل ؛ ناقص‬
+Updated line                                                                                                }‫ {تاریخ‬:‫آخرین به‌روزرسانی‬
+Buttons                                                                                     Excel ‫ خروجی‬، PDF ‫ خروجی‬، ‫ویرایش پرونده‬
+Section titles                                                                      ‫ سوابق پزشکی‬، ‫ بیمه‬، ‫ اطالعات تماس‬، ‫اطالعات هویتی‬
+
+Nobat-Yar | Frontend specification with Persian copy       Page 14
+‫‪Element‬‬                                                ‫)‪Persian text (use exactly‬‬
+‫‪Empty state‬‬                                                                                  ‫هنوز پرونده‌ای نساخته‌اید ؛ دکمه‪ :‬ساخت پرونده‬
+‫‪Empty value‬‬                                                                                                                             ‫—‬
+‫‪PDF title and export date label‬‬                                                                               ‫پرونده‌ی بیمار ؛ تاریخ خروجی‬
+‫‪PDF footer‬‬                                                                                      ‫نمونه‌ی آموزشی؛ اطالعات واقعی وارد نکنید‬
+‫‪Excel sheet name and header row‬‬                                                                                       ‫پرونده ؛ فیلد ‪ ،‬مقدار‬
+‫‪Export test strings‬‬                                        ‫نرگس‌خاتون ؛ می‌خواهم ؛ ‪ ۰۹۱۲۳۴۵۶۷۸۹‬؛ ‪ ۲۹‬آبان ‪ ۱۴۰۵‬؛ نمونه‌ای از یک متن طوالنی‬
+                                                                           ‫فارسی برای بررسی ترتیب درست کلمه‌ها و شکسته نشدن حروف‪.‬‬
+
+
+
+
+‫‪Nobat-Yar | Frontend specification with Persian copy‬‬       ‫‪Page 15‬‬
+SITE PAGE 5
+
+Schedule: Choose Date and Time
+Route: /book/schedule?doctor=:id[&date=&time=]
+Step 1 of the booking flow after the profile check. The user picks a day with the Jalali date picker and a time slot.
+
+Guards
+ - No or unknown doctor: redirect to /doctors. Profile incomplete: redirect to /book/start. Both use replace so Back does not
+   loop.
+
+
+Content, top to bottom
+1. Back button (to the Doctor page), breadcrumb, and a progress indicator showing booking steps: Time, Visit, Review.
+2. Doctor summary card: person icon, name, specialty, city, and a Change doctor link (goes to /doctors/:id).
+3. Jalali date picker (inline calendar). Selectable: the next 14 days. Disabled: past days, Fridays and fully booked days.
+4. Time slots for the chosen day as ToggleGroup single select chips, grouped Morning and Afternoon. Taken slots are
+   disabled.
+5. Continue button. Disabled until a time is chosen, with a one-line helper under it saying to choose a time to continue.
+
+
+Behavior
+ - If date and time arrive in the URL (from the Doctor page chip), preselect them and show them as selected.
+ - Changing the day clears the chosen time. Choosing a time stores doctorId, date and time in bookingDraft.
+ - Continue goes to /book/visit. Returning here from the Visit form shows the previous choice.
+
+
+Edge cases and acceptance checks
+ - A day with no free slots is disabled and explained on hover or focus. If no day is available, show a message and a link
+   back to the Doctors list.
+ - Dates display in Jalali with Persian digits; times in 24-hour format. Stored date is ISO.
+ - Fully usable by keyboard (date picker and chips).
+
+
+Persian copy: Schedule
+Element                                                Persian text (use exactly)
+Title                                                                                                                 ‫انتخاب روز و ساعت‬
+Progress steps                                                                                    ‫ مرور و ثبت‬، ‫ اطالعات ویزیت‬، ‫زمان نوبت‬
+Change doctor link                                                                                                            ‫تغییر پزشک‬
+Slot groups                                                                                                                   ‫ عصر‬، ‫صبح‬
+Continue button                                                                                                                     ‫ادامه‬
+Helper under disabled button                                                                             .‫ یک ساعت انتخاب کنید‬،‫برای ادامه‬
+Disabled day hint                                                                                                 ‫این روز نوبت خالی ندارد‬
+No days available                                                     ‫ بازگشت به لیست پزشکان‬:‫ ؛ لینک‬.‫ روز آینده نوبت خالی وجود ندارد‬۱۴ ‫در‬
+
+
+
+
+Nobat-Yar | Frontend specification with Persian copy       Page 16
+SITE PAGE 6
+
+Visit Form
+Route: /book/visit
+The short per-visit form. It only asks things that belong to this visit, because all stable personal and medical data is already in
+the profile.
+
+Guards
+ - No date and time in bookingDraft: redirect to /book/schedule. Profile incomplete: redirect to /book/start.
+
+
+Content, top to bottom
+1.      Back button (to Schedule), breadcrumb, progress indicator, and the small educational-sample note.
+2.      Summary bar: doctor, Jalali date, time, with a Change link to /book/schedule.
+3.      The form fields (table below), each in a clearly separated group.
+4.      Buttons: Back and Next (to /book/review).
+
+
+Field                           Control                                                               Rules
+Visit type                      RadioGroup: First visit with this doctor, Follow-up visit             Required
+Reason for visit                Textarea with live character counter                                  Required, 10 to 500 characters
+Symptom duration                Select: less than 1 day, 1 to 3 days, 4 to 7 days, 1 to 4 weeks,      Required
+                                more than 1 month
+Severity of discomfort          Slider 0 to 10, step 1, with a live value label                       Default 0; always valid
+Pregnancy                       RadioGroup: Pregnant, Not pregnant                                    Shown only if the profile gender is
+                                                                                                      Female; required when shown
+Additional notes                Textarea                                                              Optional, up to 500 characters
+
+
+
+Behavior
+ - Values are stored in bookingDraft continuously. Back and forward navigation never loses them.
+ - Next validates and goes to /book/review. Leaving the flow with edits opens the unsaved-changes confirmation.
+ - This form must never ask for anything already in the profile (no allergies, conditions, insurance, contact).
+
+
+Acceptance checks
+ - Pregnancy appears or not depending on the saved profile gender (test with both).
+ - Slider is keyboard accessible and announces its value. Character counter updates live. Persian digits accepted in all text
+   fields.
+ - Refresh in the middle keeps the draft.
+
+
+Persian copy: Visit form
+Element                                                Persian text (use exactly)
+Title                                                                                                                           ‫اطالعات ویزیت‬
+Summary bar labels and link                                                                                       ‫ ساعت ؛ تغییر‬، ‫ تاریخ‬، ‫پزشک‬
+Visit type                                                                          ‫ مراجعه‌ی پیگیری‬، ‫نوع مراجعه ؛ مراجعه‌ی اول به این پزشک‬
+Reason                                                           ۵۰۰ ‫} از‬n{ :‫علت مراجعه ؛ مشکل یا علت مراجعه‌ی خود را بنویسید ؛ شمارنده‬
+Duration                                                        ‫ ماه‬۱ ‫ بیش از‬، ‫ هفته‬۴ ‫ تا‬۱ ، ‫ روز‬۷ ‫ تا‬۴ ، ‫ روز‬۳ ‫ تا‬۱ ، ‫ روز‬۱ ‫مدت عالئم ؛ کمتر از‬
+Severity                                                                                                 ۱۰ ‫} از‬n{ :‫شدت ناراحتی ؛ مقدار زنده‬
+Pregnancy                                                                                           ‫ باردار نیستم‬، ‫وضعیت بارداری ؛ باردار هستم‬
+Notes                                                                                                               )‫توضیحات تکمیلی (اختیاری‬
+Reason error                                                                                       .‫ کاراکتر بنویسید‬۱۰ ‫علت مراجعه را حداقل در‬
+Buttons                                                                                                                  ‫ مرحله‌ی بعد‬، ‫بازگشت‬
+
+
+
+
+Nobat-Yar | Frontend specification with Persian copy       Page 17
+SITE PAGE 7
+
+Review and Confirm
+Route: /book/review
+Last step before creating the appointment. Shows everything entered and lets the user fix any part without losing the rest.
+
+Content, top to bottom
+1. Back button (to Visit form), breadcrumb, progress indicator.
+2. Three summary cards: Appointment (doctor, specialty, city, date, time), Visit (all visit answers), Profile (compact read-
+   only summary of the saved profile).
+3. Each card has an Edit link: Appointment goes to /book/schedule; Visit goes to /book/visit; Profile goes to
+   /profile/edit/identity?returnTo=/book/review.
+4. Primary button: Confirm appointment.
+
+
+Behavior of Confirm
+1.   Disable the button immediately to prevent double submission.
+2.   Create the appointment: unique 6-digit code, status active, copy of the visit values, snapshot of the profile, createdAt.
+3.   Append it to the appointments list in localStorage and clear bookingDraft.
+4.   Navigate with replace to /book/done?code=XXXXXX so browser Back never returns here or re-submits.
+
+
+Edge cases and acceptance checks
+ - Missing draft data: redirect to the first incomplete step.
+ - Returning from any Edit link lands back on this page with all values intact.
+ - The code is unique across stored appointments.
+
+
+Persian copy: Review and confirm
+Element                                                Persian text (use exactly)
+Title and subtitle                                                                  .‫مرور و تأیید نهایی ؛ لطفًا اطالعات را بررسی کنید‬
+Cards                                                                               ‫ خالصه‌ی پرونده‬، ‫ اطالعات ویزیت‬، ‫اطالعات نوبت‬
+Edit link                                                                                                                    ‫ویرایش‬
+Buttons                                                                                                    ‫ ثبت نهایی نوبت‬، ‫بازگشت‬
+
+
+
+
+Nobat-Yar | Frontend specification with Persian copy       Page 18
+SITE PAGE 8
+
+Success and Tracking Code
+Route: /book/done?code=XXXXXX
+Confirms the booking and makes the next step obvious.
+
+Content, top to bottom
+1.      Success icon and a clear message that the appointment is booked.
+2.      Tracking code in large type with a Copy button (clipboard plus a short toast).
+3.      Summary: doctor, specialty, city, Jalali date, time.
+4.      Three buttons: View details (to /appointments/:code), My appointments (to /appointments), New appointment (to
+        /doctors).
+
+
+Behavior and checks
+ - No Back button on this page. Browser Back must not return to the review step; it should land on the Doctors list.
+ - Unknown or missing code redirects to /appointments.
+ - The homepage hero card (next appointment) must now appear for this user because an active appointment exists.
+
+
+Persian copy: Success
+Element                                                Persian text (use exactly)
+Title                                                                                                                 ‫نوبت شما ثبت شد‬
+Subtitle                                                                            .‫کد پیگیری را برای مراجعه‌های بعدی نزد خود نگه دارید‬
+Code label, copy button, toast                                                                   ‫کد پیگیری ؛ کپی کد ؛ کد پیگیری کپی شد‬
+Buttons                                                                               ‫ دریافت نوبت جدید‬، ‫ نوبت‌های من‬، ‫مشاهده جزئیات‬
+
+
+
+
+Nobat-Yar | Frontend specification with Persian copy       Page 19
+SITE PAGE 9
+
+My Appointments (Table)
+Route: /appointments
+All appointments in one clean table, with search, filters, sorting and cancellation. A row opens the details sheet.
+
+Entry points
+ - Profile menu, My appointments; Success page button; homepage hero next-appointment card (its button View details
+   goes to that appointment details page).
+
+
+Content, top to bottom
+1. Back button (to Landing) and breadcrumb: Home > My appointments.
+2. Toolbar: search (matches tracking code or doctor name), status chips (All, Active, Done, Cancelled), doctor Select (only
+   doctors that appear in the list).
+3. Result count.
+4. Table (columns below). Default sort: date and time, newest first. Pagination only when there are more than 10 rows.
+
+
+Column                      Content                                                 Notes
+Tracking code               Persian digits, 6 digits                                Searchable
+Doctor                      Name                                                    Sortable
+Specialty                   Specialty name
+Date and time               Jalali date and time                                    Sortable
+Status                      Badge: active, done, cancelled                          Sortable; done is derived from date and time
+Actions                     View details; Cancel (active only)                      Cancel opens a confirmation dialog
+
+
+
+Behavior
+ - Clicking a row (or View details) navigates to /appointments/:code.
+ - Cancel: confirmation dialog with Back and Confirm; on confirm the status becomes cancelled, a toast appears, and the
+   row updates in place. Done and cancelled appointments cannot be cancelled.
+ - On mobile each row becomes a compact card with the same information and actions.
+
+
+Empty and edge states
+Situation                                       Show
+No appointments at all                          Friendly empty state with a button to find a doctor (goes to /doctors)
+Filters match nothing                           Empty state with a Clear filters button
+
+
+
+Acceptance checks
+ - Sorting and filtering work together and are instant. Persian digits and Jalali dates everywhere. Usable at 360 px.
+ - Cancelling the active appointment removes the hero next-appointment card on the landing page (if it was the only active
+   one).
+
+
+Persian copy: My appointments
+Element                                                Persian text (use exactly)
+Title                                                                                                                              ‫نوبت‌های من‬
+Search placeholder, doctor filter, count                                      ‫} نوبت‬n{ ‫جست‌وجوی کد پیگیری یا نام پزشک ؛ همه‌ی پزشکان ؛‬
+Status chips                                                                                                   ‫ لغو‌شده‬، ‫ انجام‌شده‬، ‫ فعال‬، ‫همه‬
+Table headers                                                                  ‫ عملیات‬، ‫ وضعیت‬، ‫ تاریخ و ساعت‬، ‫ تخصص‬، ‫ پزشک‬، ‫کد پیگیری‬
+Row actions                                                                                                          ‫ لغو نوبت‬، ‫مشاهده جزئیات‬
+Cancel dialog and toast                                  ‫ لغو نوبت ؛ نوبت لغو شد‬، ‫ ؛ بازگشت‬.‫این نوبت لغو شود؟ ؛ این کار قابل بازگشت نیست‬
+Empty (no appointments)                                                                        ‫ پیدا کردن پزشک‬:‫هنوز نوبتی ثبت نکرده‌اید ؛ دکمه‬
+Empty (filters)                                                                                ‫ حذف فیلترها‬:‫نوبتی با این فیلترها پیدا نشد ؛ دکمه‬
+
+
+
+
+Nobat-Yar | Frontend specification with Persian copy       Page 20
+SITE PAGE 10
+
+Appointment Details Sheet (Print)
+Route: /appointments/:code
+A formal sheet for one appointment that can be printed. It uses the profile data saved with the appointment, not the live
+profile.
+
+Content (screen and print, same order)
+1.      Header: brand name, title Appointment and admission sheet, tracking code, issue date (Jalali), and the status badge.
+2.      Patient: full name, father name, national ID (or foreigner ID), birth date, gender, marital status, mobile.
+3.      Insurance: basic insurance, supplementary insurance (and company if any).
+4.      Appointment: doctor, specialty, city, date, time, practice address.
+5.      Visit: visit type, reason, duration, severity, pregnancy (if answered), notes.
+6.      Medical history: blood type, height, weight, conditions, drug allergy, medications, surgeries, family history, smoking.
+7.      Signature area: patient signature and clinic stamp boxes. Footer: short educational-sample note.
+
+
+Screen actions
+ - Back (to Appointments) and breadcrumb. Primary button: Print. Secondary: Cancel appointment (only when active, same
+   confirmation dialog).
+ - Unknown code: not-found state with a button to Appointments.
+
+
+Print requirements
+ - The Print button calls window.print(). Wait for fonts to be ready before printing (document.fonts.ready) so Persian renders
+   correctly.
+ - A4 portrait, 15 mm margins, right-to-left, Persian digits. Hide header, footer, breadcrumb and all buttons. White
+   background; no shadows, gradients or glass effects; dark text.
+ - Avoid page breaks inside a section (break-inside: avoid). Target: one page, two at most. Section titles stay with their
+   content.
+ - Print preview is the acceptance test: letters joined, order correct, signature boxes visible, nothing cut off.
+ - Saving as PDF works through the browser print dialog; no extra PDF button is required here.
+
+
+Acceptance checks
+ - Editing the profile after booking does not change an old sheet (snapshot).
+ - The sheet matches the Success page data and the table row exactly.
+ - Works on mobile as a readable stacked layout; print always uses the A4 layout.
+
+
+Persian copy: Appointment details sheet
+Element                                                Persian text (use exactly)
+Title                                                                                                                  ‫برگه‌ی نوبت و پذیرش‬
+Header fields                                                                                               ‫ وضعیت‬، ‫ تاریخ صدور‬، ‫کد پیگیری‬
+Section titles                                                         ‫ سوابق پزشکی‬، ‫ اطالعات ویزیت‬، ‫ اطالعات نوبت‬، ‫ بیمه‬، ‫اطالعات بیمار‬
+Patient labels                                             ‫ شماره‌ی‬، ‫ وضعیت تأهل‬، ‫ جنسیت‬، ‫ تاریخ تولد‬، ‫ کد ملی‬، ‫ نام پدر‬، ‫نام و نام خانوادگی‬
+                                                                                                                                     ‫موبایل‬
+Insurance and appointment labels                              ‫ نشانی مطب‬، ‫ ساعت‬، ‫ تاریخ‬، ‫ شهر‬، ‫ تخصص‬، ‫ بیمه‌ی تکمیلی ؛ پزشک‬، ‫بیمه‌ی پایه‬
+Visit labels                                               ‫ توضیحات‬، ‫ وضعیت بارداری‬، ‫ شدت ناراحتی‬، ‫ مدت عالئم‬، ‫ علت مراجعه‬، ‫نوع مراجعه‬
+                                                                                                                                ‫تکمیلی‬
+Medical labels                                              ، ‫ داروهای مصرفی‬، ‫ حساسیت دارویی‬، ‫ بیماری‌های زمینه‌ای‬، ‫ وزن‬، ‫ قد‬، ‫گروه خونی‬
+                                                                               ‫ مصرف دخانیات‬، ‫ سابقه‌ی بیماری در خانواده‬، ‫سوابق جراحی‬
+Signature boxes and footer note                                 ‫امضای بیمار ؛ مهر و امضای مطب ؛ نمونه‌ی آموزشی؛ اطالعات واقعی وارد نکنید‬
+Buttons                                                                                                           ‫ بازگشت‬، ‫ لغو نوبت‬، ‫چاپ‬
+Not found                                                                                 ‫ ؛ بازگشت به نوبت‌های من‬.‫نوبت مورد نظر پیدا نشد‬
+
+
+
+
+Nobat-Yar | Frontend specification with Persian copy       Page 21
+FINAL
+
+Global Acceptance Checklist and Deferred Items
+Global checks
+ - Every page and every step has a visible Back button; data survives Back and refresh where specified.
+ - No checkbox exists anywhere; ToggleGroup multiple is used for conditions.
+ - Persian digits and Jalali dates display everywhere; Latin digits and ISO dates are stored.
+ - Profile is checked when booking starts, never in the middle of the visit form.
+ - Log out clears profile, drafts and all appointments; afterwards the hero shows the new-user state and My appointments is
+   empty.
+ - Doctor cards open the Doctor page; only the Doctor page starts booking.
+ - Exports (profile PDF and Excel) and print (appointment sheet) pass the Persian rendering checks.
+ - ?seed=1 populates demo data; ?seed=0 clears it. Every page is reviewed at desktop width and at 360 px.
+ - No console errors. No new colors, fonts or card shapes outside the existing design system.
+
+
+Deferred on purpose (do not build now)
+ - Complete province and city list and selector (only Tehran and Karaj for now).
+ - Settings page. All-specialties page. Real login and backend. Payments and notifications. User-written reviews.
+ - Rescheduling an appointment (only cancel exists).
+
+
+Final notes expected from the programmer
+ - List of files added or changed.
+ - Which PDF method was used and any limits (for example: text not selectable if the canvas fallback was used).
+ - Anything intentionally not built, and any place where this document was ambiguous or contradictory.
+ - Exact Windows commands to run and how to open ?seed=1.
+
+
+
+
+Nobat-Yar | Frontend specification with Persian copy   Page 22
+

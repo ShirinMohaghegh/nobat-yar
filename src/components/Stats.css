@@ -1,0 +1,129 @@
+.stats-section {
+  padding-block: var(--space-section);
+}
+
+.stats-panel {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,.95);
+  border-radius: 26px;
+  background: linear-gradient(
+    120deg,
+    rgba(218,245,239,.8),
+    rgba(226,240,248,.8),
+    rgba(255,238,226,.7)
+  );
+  box-shadow: 0 12px 35px rgba(30,110,125,.055);
+}
+
+.stat-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 17px;
+  padding: 27px 20px;
+}
+
+.stat-item + .stat-item {
+  border-right: 1px solid rgba(63,111,120,.13);
+}
+
+.stat-icon {
+  display: grid;
+  width: 55px;
+  height: 55px;
+  flex: 0 0 55px;
+  place-items: center;
+  border-radius: 17px;
+  background: rgba(255,255,255,.75);
+  color: var(--aqua);
+}
+
+.stat-content {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.stat-content strong {
+  color: var(--ink);
+  font-size: var(--text-xl);
+  font-weight: var(--weight-heavy);
+  line-height: 1.5;
+  font-variant-numeric: tabular-nums;
+}
+
+.stat-content span {
+  color: var(--ink-2);
+  font-size: var(--text-sm);
+}
+
+@media (max-width: 768px) {
+  .stats-section {
+    padding-block: var(--space-section-mobile);
+  }
+
+  .stats-panel {
+    grid-template-columns: 1fr;
+    border-radius: 22px;
+  }
+
+  .stat-item {
+    justify-content: flex-start;
+    padding: 17px 22px;
+  }
+
+  .stat-item + .stat-item {
+    border-right: none;
+    border-top: 1px solid rgba(63,111,120,.13);
+  }
+
+  .stat-icon {
+    width: 47px;
+    height: 47px;
+    flex-basis: 47px;
+  }
+
+  .stat-content strong {
+    font-size: var(--text-lg);
+  }
+}
+/* STATS HEADING */
+
+.stats-heading {
+  margin-bottom: var(--space-heading);
+  text-align: right;
+}
+
+.stats-heading > span {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--aqua);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-bold);
+}
+
+.stats-heading h2 {
+  margin: 0;
+  color: var(--ink);
+  font-size: var(--text-xl);
+  font-weight: var(--weight-heavy);
+  line-height: 1.6;
+}
+
+.stats-heading p {
+  margin: 3px 0 0;
+  color: var(--ink-2);
+  font-size: var(--text-sm);
+}
+
+@media (max-width: 768px) {
+  .stats-heading h2 {
+    font-size: var(--text-lg);
+  }
+
+  .stats-heading p {
+    font-size: var(--text-xs);
+  }
+}

@@ -1,0 +1,160 @@
+/* Doctor cards share the global card and button design tokens. */
+.doctor-card {
+  min-width: 0;
+  overflow: hidden;
+  border-radius: var(--r-card);
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
+  transition: transform var(--motion-standard), box-shadow var(--motion-standard);
+}
+
+.doctor-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-card-hover);
+}
+
+/* Compact portrait header without a full-bleed image panel. */
+.doctor-card-image {
+  position: relative;
+  display: grid;
+  place-items: center;
+  height: 148px;
+  padding-top: 51px;
+  background: transparent;
+}
+
+.doctor-card-image .doctor-avatar {
+  display: block;
+  width: 96px;
+  height: 96px;
+  flex: 0 0 auto;
+  border: 3px solid var(--surface);
+  border-radius: 50%;
+  background: var(--tint);
+  box-shadow: 0 0 0 6px var(--tint), 0 5px 16px rgba(30,110,125,.09);
+  object-fit: cover;
+  object-position: center 36%;
+  color: var(--deep);
+}
+
+.doctor-today-badge {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 3px 11px;
+  border-radius: var(--r-pill);
+  background: var(--peach-bg);
+  color: var(--peach-ink);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+  line-height: var(--leading-body);
+}
+
+.doctor-today-dot {
+  width: 8px;
+  height: 8px;
+  flex: 0 0 8px;
+  border-radius: 50%;
+  background: var(--peach-dot);
+  animation: doctor-pulse 1.6s infinite;
+}
+
+.doctor-card-body {
+  padding: 14px var(--space-5) var(--space-5);
+  text-align: center;
+}
+
+.doctor-card-name {
+  margin: 0;
+  color: var(--ink);
+  font-size: var(--text-base);
+  font-weight: var(--weight-heavy);
+}
+
+.doctor-card-specialty {
+  margin: 3px 0 0;
+  color: var(--ink-2);
+  font-size: var(--text-sm);
+}
+
+.doctor-card-rating {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-block: 14px 18px;
+  color: var(--ink-2);
+  font-size: var(--text-sm);
+}
+
+.doctor-stars {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  direction: ltr;
+}
+
+@keyframes doctor-pulse {
+  from { box-shadow: 0 0 0 0 rgba(255,159,107,.85); }
+  to { box-shadow: 0 0 0 9px rgba(255,159,107,0); }
+}
+
+@media (max-width: 768px) {
+  .doctor-card {
+    border-radius: var(--r-tile);
+  }
+
+  .doctor-card-image {
+    height: 140px;
+    padding-top: 51px;
+  }
+
+  .doctor-card-image .doctor-avatar {
+    width: 86px;
+    height: 86px;
+  }
+
+  .doctor-card-body {
+    padding: 14px;
+  }
+
+  .doctor-card-specialty,
+  .doctor-card-rating {
+    font-size: var(--text-xs);
+  }
+
+  .doctor-card-rating {
+    gap: 6px;
+    margin-block: 10px 13px;
+  }
+
+  .doctor-stars {
+    gap: 1px;
+  }
+
+  .doctor-stars svg {
+    width: 13px;
+    height: 13px;
+  }
+
+  .doctor-card-button {
+    min-height: var(--button-height-sm);
+  }
+
+  .doctor-today-badge {
+    top: 12px;
+    right: 12px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .doctor-card,
+  .doctor-today-dot {
+    transition: none;
+    animation: none;
+  }
+}

@@ -1,0 +1,86 @@
+/* Nobat-Yar design foundations — one source of truth. */
+:root {
+  --ink: #0F2E37;
+  --ink-2: #3F6F78;
+  --bg: #F2FAFA;
+  --surface: #FFFFFF;
+  --border: #D6EAEA;
+
+  --aqua: #2BAFA3;
+  --deep: #1F6272;
+  --tint: rgba(43,175,163,.10);
+  --tint-hover: rgba(43,175,163,.16);
+  --border-aqua: rgba(43,175,163,.22);
+  --white-glass: rgba(255,255,255,.72);
+  --muted-line: rgba(63,111,120,.13);
+
+  /* Pastel category colours shared by specialties and common conditions. */
+  --tone-mint-bg: #E1F4ED;
+  --tone-mint-ink: #278478;
+  --tone-blue-bg: #E1F0F8;
+  --tone-blue-ink: #347FA1;
+  --tone-peach-bg: #FFF0E5;
+  --tone-peach-ink: #B96D3C;
+  --tone-violet-bg: #EBEAF9;
+  --tone-violet-ink: #6A70B1;
+  --tone-pink-bg: #FBE9ED;
+  --tone-pink-ink: #B75B75;
+  --tone-sand-bg: #F0F4DC;
+  --tone-sand-ink: #7D963B;
+
+  --btn-grad: linear-gradient(135deg,#2F8C99,#1F6272);
+  --footer-ink: #E6F7F5;
+  --footer-muted: rgba(230,247,245,.76);
+  --footer-accent: #70D8C9;
+  --success-bg: #E1F6E9;
+  --success-ink: #27834B;
+  --success-dot: #36AE68;
+  --peach-bg: #FFF0E6;
+  --peach-ink: #8A4018;
+  --holiday-bg: rgba(255,229,216,.56);
+  --holiday-ink: #A85E49;
+  --peach-dot: #FF9F6B;
+  --star: #F08A3C;
+  --danger: #B5443C;
+
+  /* Five steps: caption, small, body, section-title, hero-title. */
+  --text-xs: 11px;
+  --text-sm: 13px;
+  --text-base: 15px;
+  --text-lg: 20px;
+  --text-xl: 28px;
+  --text-hero: clamp(29px, 2.6vw, 42px);
+  --weight-medium: 600;
+  --weight-bold: 700;
+  --weight-heavy: 800;
+  --leading-tight: 1.5;
+  --leading-body: 1.8;
+  --leading-relaxed: 2;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-section: 72px;
+  --space-heading: 28px;
+  --space-section-mobile: 48px;
+  --container-width: 1200px;
+
+  --r-sm: 12px;
+  --r-input: 16px;
+  --r-tile: 20px;
+  --r-card: 24px;
+  --r-pill: 999px;
+  --shadow-card: 0 10px 30px rgba(30,110,125,.09);
+  --shadow-card-hover: 0 16px 36px rgba(30,110,125,.14);
+
+  --button-height-sm: 36px;
+  --button-height-md: 44px;
+  --button-height-lg: 48px;
+  --control-height: 40px;
+  --focus-ring: 0 0 0 3px rgba(43,175,163,.22);
+  --motion-fast: 160ms ease;
+  --motion-standard: 180ms ease;
+  --font-family: "Vazirmatn", Tahoma, sans-serif;
+}

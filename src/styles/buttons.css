@@ -1,0 +1,92 @@
+/* Shared interactive language. Component-specific rules should only control placement. */
+.ui-button {
+  --ui-button-bg: transparent;
+  --ui-button-bg-hover: var(--tint-hover);
+  --ui-button-color: var(--deep);
+  --ui-button-border: transparent;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  gap: var(--space-2);
+  min-height: var(--button-height-md);
+  padding: 8px 18px;
+  border: 1px solid var(--ui-button-border);
+  border-radius: var(--r-sm);
+  background: var(--ui-button-bg);
+  color: var(--ui-button-color);
+  font-family: var(--font-family);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-bold);
+  line-height: var(--leading-tight);
+  text-align: center;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background var(--motion-standard), border-color var(--motion-standard),
+              color var(--motion-standard), box-shadow var(--motion-standard),
+              transform var(--motion-standard), filter var(--motion-standard);
+}
+.ui-button > svg { width: 20px; height: 20px; flex: 0 0 20px; stroke-width: 1.75; }
+.ui-button:hover { background: var(--ui-button-bg-hover); transform: translateY(-1px); }
+.ui-button:active { transform: translateY(0); }
+.ui-button:focus-visible, .ui-icon-button:focus-visible {
+  outline: 2px solid var(--aqua);
+  outline-offset: 3px;
+  box-shadow: var(--focus-ring);
+}
+.ui-button:disabled, .ui-button[aria-disabled="true"], .ui-icon-button:disabled {
+  cursor: not-allowed;
+  opacity: .5;
+  pointer-events: none;
+}
+.ui-button--primary {
+  --ui-button-bg: var(--btn-grad);
+  --ui-button-bg-hover: var(--btn-grad);
+  --ui-button-color: #fff;
+}
+.ui-button--primary:hover { filter: brightness(1.08); }
+.ui-button--secondary {
+  --ui-button-bg: var(--white-glass);
+  --ui-button-bg-hover: var(--tint);
+  --ui-button-border: var(--border-aqua);
+}
+.ui-button--ghost {
+  --ui-button-bg: var(--tint);
+  --ui-button-bg-hover: var(--tint-hover);
+  --ui-button-border: rgba(43,175,163,.12);
+}
+.ui-button--ghost:hover { border-color: var(--border-aqua); }
+.ui-button--text {
+  --ui-button-bg-hover: var(--tint);
+  padding-inline: 8px;
+  min-height: var(--button-height-sm);
+}
+.ui-button--sm { min-height: var(--button-height-sm); padding: 6px 12px; }
+.ui-button--lg { min-height: var(--button-height-lg); padding: 10px 20px; }
+.ui-button--block { width: 100%; }
+.ui-button--inverse {
+  --ui-button-bg: rgba(255,255,255,.12);
+  --ui-button-bg-hover: rgba(255,255,255,.20);
+  --ui-button-color: #fff;
+}
+.ui-icon-button {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: var(--control-height);
+  height: var(--control-height);
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--r-pill);
+  background: transparent;
+  color: var(--deep);
+  cursor: pointer;
+  transition: background var(--motion-fast), box-shadow var(--motion-fast);
+}
+.ui-icon-button:hover { background: var(--tint); }
+.ui-icon-button--sm { width: 32px; height: 32px; }
+@media (prefers-reduced-motion: reduce) {
+  .ui-button, .ui-icon-button { transition: none; }
+  .ui-button:hover { transform: none; }
+}
